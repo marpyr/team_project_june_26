@@ -3,13 +3,12 @@
 #Preprocess mortality data into clean time series
 ###################################################################################
 
-
 #Load libraries and functions
-source('/Users/jv24t611/Library/CloudStorage/OneDrive-UniversitaetBern/my projects/team_project/team_project_june_26/01_exposure_response_functions/mortality scripts/00.pkg.R')
+source('scripts/00.pkg.R')
 
 #Define directories
 deathdir <- "/Volumes/FS/_ISPM/CCH/01Data/Mortality_CH/"
-savedir <- "~/Library/CloudStorage/OneDrive-UniversitaetBern/my projects/team_project/team_project_june_26/01_exposure_response_functions/"
+savedir <- "/Volumes/FS/_ISPM/CCH/AnnualTeamProject2026/01_exposure_response_functions/"
 
 #Load mortality data
 death1 <- fread(paste0(deathdir,"/mortality_CH_1969-2018/mort_6918.csv"))

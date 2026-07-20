@@ -45,3 +45,4 @@ vignettes/*.pdf
 .Renviron
 .positai
 01_exposure_response_functions/death6924.RDS
+01_exposure_response_functions/main_analysis.R

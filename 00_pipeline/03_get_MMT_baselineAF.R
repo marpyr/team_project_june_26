@@ -1,29 +1,35 @@
 # ──────────────────────────────────────────────────────────────────────────────
-# get_MMT_baselineAF.R — post-process second-stage BLUP coefficients
-# Annual Team Project 2026
-#
-# RUN THIS FIRST (before calculate_warning_level.R). For every district it:
+# # In this script we calulate the temperature of minimum risk, calculate the
+# baseline risk for out later classification of days and regions in risk levels.
+# Specifically:
 #   (a) estimates the minimum-mortality temperature (MMT) from the BLUP curve,
 #   (b) computes the historical heat-attributable fraction (AF), and
 #   (c) derives district-specific baseline AF percentiles used as warning cut-points.
-#
+
 # Inputs : historical_temp_popw_mvngpop_2000_2024_district.csv
 #          secondstage_blup.rds
 # Outputs: mmt.rds
 #          baseline_summer.csv
+#
+# Afterwards, for each district and forecast day we compute the
+# heat-attributable fraction (AF) from forecast temperatures, then classifies
+# each district-day into a warning level (0–3).
+#
+# Inputs : forcast_temp_popw_district.csv
+#          historical_temp_popw_mvngpop_2000_2024_district.csv  (defines the basis)
+#          secondstage_blup.rds
+#          mmt.rds                (from get_MMT_baselineAF.R)
+#          baseline_summer.csv    (from get_MMT_baselineAF.R; baseline mode only)
+# Output : warning_level.csv
 # ──────────────────────────────────────────────────────────────────────────────
 
-# ---- 0. Set-up ---------------------------------------------------------------
-# ---- Libraries ---------------------------------------------------------------
+# packages
 library(dlnm)       # onebasis(): exposure–response basis
 library(mixmeta)    # second-stage / BLUP object methods
 library(dplyr)      # data wrangling + the %>% pipe
 library(lubridate)  # month(), day(), year()
 
 # ---- Set up file paths -------------------------------------------------------
-# Data directory is read from an environment variable so that no machine-specific
-# path is hard-coded. Set ATP2026_DATA_DIR in your ~/.Renviron (see
-# .Renviron.example). Falls back to a local "data/" folder if unset.
 data_dir   <- getwd()
 
 # Inputs
@@ -38,21 +44,19 @@ f_baseline <- file.path(data_dir, "/00_pipeline_data/baseline_summer.csv")
 # Final output of calculate_warning_level.R
 f_warning       <- file.path(data_dir, "00_pipeline_data/warning_level.csv")
 
+
 # ---- Configuration -----------------------------------------------------------
 
 # District(s) to drop (no resident population / water body).
 exclude_districts <- "2604"
 
 # Exposure–response specification.
-# IMPORTANT: these MUST match the specification used to FIT the first-/second-stage
-# model that produced the BLUP coefficients. Changing them here without refitting
-# the model will silently produce wrong attributable fractions.
 varfun <- "ns"        # natural cubic spline
 varper <- c(50, 90)   # internal knot placement (percentiles of temperature)
 
 
+
 # ---- 1. Historical temperature (summer, May–Sep), per district ---------------
-# f_hist_temp <- file.path(data_dir, "historical_temp_popw_mvngpop_2000_2024_district.csv")
 temp_dist_sum <- read.csv(f_hist_temp) %>%
   select(-any_of("X")) %>%
   filter(month(time) %in% 5:9) %>%
@@ -132,6 +136,7 @@ for (dist_id in district_ids) {
 
 }
 
+
 # ---- 4. District baseline AF percentiles -------------------------------------
 # Restricted to heat days (above MMT), peak summer (Jun–Aug), recent years (2015+).
 baseline_df <- bind_rows(lapply(district_ids, function(dist_id) {
@@ -155,24 +160,6 @@ baseline_df <- bind_rows(lapply(district_ids, function(dist_id) {
 write.csv(baseline_df, f_baseline, row.names = FALSE)
 
 
-
-
-
-# ──────────────────────────────────────────────────────────────────────────────
-# calculate_warning_level.R — forecast AF and assign heat-warning levels
-# Annual Team Project 2026
-#
-# RUN AFTER get_MMT_baselineAF.R For each district and forecast day it computes the
-# heat-attributable fraction (AF) from forecast temperatures, then classifies
-# each district-day into a warning level (0–3).
-#
-# Inputs : forcast_temp_popw_district.csv
-#          historical_temp_popw_mvngpop_2000_2024_district.csv  (defines the basis)
-#          secondstage_blup.rds
-#          mmt.rds                (from get_MMT_baselineAF.R)
-#          baseline_summer.csv    (from get_MMT_baselineAF.R; baseline mode only)
-# Output : warning_level.csv
-# ──────────────────────────────────────────────────────────────────────────────
 
 # ---- 1. Warning-level configuration ------------------------------------------
 #   "fixed"    : the same AF cut-points for every district (fixed_cuts below).

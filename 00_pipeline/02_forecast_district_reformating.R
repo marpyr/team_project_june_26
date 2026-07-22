@@ -1,43 +1,39 @@
-library(sf)
-library(terra)
-library(dplyr)
-library(tidyr)
-library(exactextractr)
-library(lubridate)
+# In this script we load the downloaded temperature forecasts, and
+# calculate populationweighted daily mean temperatures for each day of the forecast
 
-# this scripts loads a forecast
 
-################### SETUP
+# packages
+library(sf); library(terra); library(dplyr); library(tidyr); library(exactextractr); library(lubridate)
 
-output_directory_template = "00_pipeline_data/"
 
-### Overwriting or not the output directory
+## File paths
+#----
 
-overwrite = T
 ref_date <- as.Date(today())
-
-### load forecast
-
-forecast_temp = rast("00_pipeline_data/forecast_raw_icon_ch2_2kmRegCons_daily_00utc_data.nc")
-
-raster_dat = forecast_temp-273.15
-
 date_forecast = seq(ref_date,ref_date+4,by=1)
 
-### load districts
+# output directory
+output_district_csv = "00_pipeline_data/forecast_clean_district.csv"
 
+# forecast temperature
+forecast_temp = rast("00_pipeline_data/forecast_raw_icon_ch2_2kmRegCons_daily_00utc_data.nc")
+raster_dat = forecast_temp-273.15
+
+# shapefiles of regions
 districts=read_sf("00_pipeline_data/district_shapefile/")
 
-### load population (last population dataset of structured list)
+# population densities
 pop_rast_list = readRDS("00_pipeline_data/population.RDS")
 pop_rast=pop_rast_list[[length(pop_rast_list)]]
 pop_rast=project(pop_rast,forecast_temp)
 
-output_district_csv = paste0(output_directory_template,'forecast_clean_district.csv')
+#----
 
-################ Computation helpers
 
-#long_format_helper
+# Computation helpers
+#----
+
+# long_format_helper
 long_format = function(average_dat,date_forecast,districts,name_var="mean_value"){
   colnames(average_dat)=date_forecast
   average_dat$BEZNAME = districts$BEZNAME
@@ -51,7 +47,7 @@ long_format = function(average_dat,date_forecast,districts,name_var="mean_value"
   return(new_long_format_table)
 }
 
-#district extraction
+# district extraction
 district_extract = function(raster_dat,districts,pop_rast,date_forecast){
   pop_rast_comput <- project(pop_rast, raster_dat)
 
@@ -65,9 +61,14 @@ district_extract = function(raster_dat,districts,pop_rast,date_forecast){
   return(long_format_table2)
 }
 
-################ File creation and saving
+#----
 
-forecast_long_dat=district_extract(raster_dat,districts,pop_rast,date_forecast)
+
+# File creation and saving
+#----
+
+forecast_long_dat <- district_extract(raster_dat,districts,pop_rast,date_forecast)
 
 write.csv(forecast_long_dat,output_district_csv)
 
+#----

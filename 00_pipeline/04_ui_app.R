@@ -2,7 +2,7 @@
 # through a map for a selected day (today - today+4days) and for searched locations
 # over the entire 5-day forecast.
 
-# To run the app, you need to run this script line by line
+# To run the app, you need to run this script
 
 # packages
 library(lubridate); library(sf); library(tidyverse); library(shiny); library(leaflet)
